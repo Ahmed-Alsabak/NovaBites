@@ -1,0 +1,139 @@
+.bg-layers {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 70%;
+}
+
+.bg-galaxy {
+  opacity: 1;
+}
+
+.bg-planets {
+  opacity: 0;
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  padding: 2rem;
+  text-align: center;
+  color: #fff;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.4) 30%, transparent 80%);
+}
+
+.hero__title,
+.hero__subtitle {
+  text-shadow:
+    3px 3px 0 #000,
+    -3px -3px 0 #000,
+    3px -3px 0 #000,
+    -3px 3px 0 #000,
+    0px 4px 0 #000;
+}
+
+.hero__title {
+  font-size: clamp(3rem, 8.5vw, 7rem);
+  font-weight: normal;
+  color: #fff;
+}
+
+.hero__cookies {
+  list-style: none;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.hero__cookie {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.hero__cookie img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.15s steps(2);
+}
+
+.hero__cookie img:hover {
+  transform: translateY(-8px);
+}
+
+.hero__subtitle {
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-weight: normal;
+  color: #fff;
+}
+
+.hero__hot {
+  position: relative;
+  display: inline-block;
+}
+
+.hero__fresh {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #ffe600;
+}
+
+/* the word stays one text node so Arabic joining is never broken;
+   the gaf stroke is painted over the kaf (3rd letter from the right) */
+.hero__gaf-word {
+  position: relative;
+}
+
+.hero__gaf-word::before {
+  content: '';
+  position: absolute;
+  top: -0.04em;
+  right: 1.12em;
+  width: 0.34em;
+  height: 0.07em;
+  background: currentColor;
+  transform: rotate(-38deg);
+  box-shadow:
+    3px 3px 0 #000,
+    -3px -3px 0 #000,
+    3px -3px 0 #000,
+    -3px 3px 0 #000;
+  pointer-events: none;
+}

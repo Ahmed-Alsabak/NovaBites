@@ -1,0 +1,1657 @@
+/* ==========================================================================
+   Cookie Nova - interactive 2D arcade section
+   Palette: deep space purple + neon cyan / magenta / yellow / violet
+   Only transform & opacity are animated -> everything stays on the compositor.
+   ========================================================================== */
+
+.game {
+  --ink: #0a0416;
+  --panel: #1b0d38;
+  --panel-2: #2b1750;
+  --cyan: #00f0ff;
+  --pink: #ff3df2;
+  --yellow: #ffe600;
+  --violet: #a35bff;
+  --lime: #b6ff3c;
+
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: transparent; /* the Hero's fixed space image shows through */
+  color: #fff;
+  isolation: isolate;
+}
+
+.game__viewport {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  min-height: 520px;
+  overflow: hidden;
+  contain: layout paint;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.game img {
+  -webkit-user-drag: none;
+}
+
+/* ------------------------------------------------------------------ backdrop */
+
+.bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+}
+
+.bg__planets {
+  display: none; /* the Hero's fixed layer is the one shared sky */
+}
+
+.bg__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 6, 0.12) 60%, rgba(0, 0, 6, 0.35) 100%);
+}
+
+.bg__stars {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(100% + 512px);
+  height: calc(100% + 512px);
+  background-repeat: repeat;
+  background-size: 512px 512px;
+  will-change: transform;
+}
+
+.bg__stars--far {
+  opacity: 0.35;
+}
+
+.bg__stars--near {
+  animation: twinkle 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+/* --------------------------------------------------------------------- world */
+
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* ---- platforms ---------------------------------------------------------- */
+
+.platform {
+  position: absolute;
+  z-index: 1;
+}
+
+.platform__body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 4px solid var(--ink);
+  border-top: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0 6px, transparent 6px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0 4px, transparent 4px 60px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 4px, transparent 4px 26px),
+    var(--panel-2);
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* little running lights along the underside */
+.platform__chase {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  width: calc(100% + 48px);
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--neon) 0 6px,
+    transparent 6px 24px
+  );
+  opacity: 0.9;
+  animation: chase 1.1s linear infinite;
+}
+
+@keyframes chase {
+  to {
+    transform: translate3d(-24px, 0, 0);
+  }
+}
+
+.platform__neon {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: -3px;
+  height: 7px;
+  background: var(--neon);
+  border: 2px solid var(--ink);
+  box-shadow:
+    0 0 10px 1px var(--neon),
+    0 -6px 22px -2px var(--neon);
+}
+
+.platform__aura {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: -150px;
+  height: 340px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    color-mix(in srgb, var(--neon) 34%, transparent) 0%,
+    color-mix(in srgb, var(--neon) 12%, transparent) 45%,
+    transparent 72%
+  );
+  animation: aura-pulse 3.4s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes aura-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---- stairs ------------------------------------------------------------- */
+
+.tread {
+  position: absolute;
+  z-index: 1;
+  border: 3px solid var(--ink);
+  border-top: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.26) 0 3px, transparent 3px 28px),
+    var(--panel-2);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.38);
+}
+
+.tread::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: -3px;
+  height: 6px;
+  background: var(--neon);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 8px 1px var(--neon);
+}
+
+.tread__aura {
+  position: absolute;
+  left: -30px;
+  right: -30px;
+  top: -34px;
+  height: 100px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    color-mix(in srgb, var(--neon) 40%, transparent),
+    transparent 70%
+  );
+  opacity: 0.25;
+  animation: tread-chase 2.6s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes tread-chase {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  18% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.22;
+  }
+}
+
+/* ---- signs -------------------------------------------------------------- */
+
+.sign {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--yellow);
+  background: var(--panel);
+  box-shadow:
+    -4px 0 0 0 var(--yellow),
+    4px 0 0 0 var(--yellow),
+    0 -4px 0 0 var(--yellow),
+    0 4px 0 0 var(--yellow),
+    -8px 0 0 0 var(--ink),
+    8px 0 0 0 var(--ink),
+    0 -8px 0 0 var(--ink),
+    0 8px 0 0 var(--ink),
+    0 0 26px 4px rgba(255, 230, 0, 0.35);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.sign::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 6px;
+  height: 36px;
+  margin-top: 8px;
+  margin-left: -3px;
+  background: var(--ink);
+}
+
+.sign .arrow-icon {
+  width: 22px;
+  height: 22px;
+  animation: nudge 0.9s steps(3) infinite;
+}
+
+@keyframes nudge {
+  50% {
+    transform: translate3d(5px, 0, 0) scaleX(-1);
+  }
+}
+
+.sign--end {
+  color: var(--cyan);
+  box-shadow:
+    -4px 0 0 0 var(--cyan),
+    4px 0 0 0 var(--cyan),
+    0 -4px 0 0 var(--cyan),
+    0 4px 0 0 var(--cyan),
+    -8px 0 0 0 var(--ink),
+    8px 0 0 0 var(--ink),
+    0 -8px 0 0 var(--ink),
+    0 8px 0 0 var(--ink),
+    0 0 26px 4px rgba(0, 240, 255, 0.35);
+}
+
+/* ---- cookies ------------------------------------------------------------ */
+
+.cookie {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cookie__float {
+  position: absolute;
+  inset: 0;
+  animation: bob 2.8s ease-in-out infinite;
+}
+
+@keyframes bob {
+  50% {
+    transform: translate3d(0, -9px, 0);
+  }
+}
+
+.cookie__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+  transform-origin: 50% 70%;
+  transition:
+    transform 0.35s cubic-bezier(0.2, 1.5, 0.4, 1),
+    filter 0.3s ease;
+}
+
+.cookie__halo {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 300px;
+  height: 300px;
+  margin: -150px 0 0 -150px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 230, 0, 0.6) 0%,
+    rgba(255, 230, 0, 0.24) 26%,
+    rgba(163, 91, 255, 0.4) 46%,
+    transparent 70%
+  );
+  opacity: 0;
+  transform: scale(0.55);
+  transition:
+    opacity 0.3s ease,
+    transform 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.cookie.is-active .cookie__halo {
+  opacity: 1;
+  transform: scale(1);
+  animation: halo-pulse 1.4s ease-in-out infinite alternate 0.45s;
+}
+
+@keyframes halo-pulse {
+  to {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+}
+
+.cookie.is-active .cookie__img {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 3px var(--yellow)) drop-shadow(0 0 14px var(--violet));
+}
+
+.cookie__pedestal {
+  position: absolute;
+  left: 50%;
+  bottom: 19px;
+  width: 112px;
+  height: 14px;
+  margin-left: -56px;
+  background: var(--panel-2);
+  border: 3px solid var(--ink);
+  box-shadow:
+    inset 0 4px 0 var(--neon),
+    0 0 14px 1px var(--neon);
+}
+
+.cookie__spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--yellow);
+  box-shadow: 0 0 6px 1px var(--yellow);
+  opacity: 0;
+}
+
+.cookie__spark--1 {
+  left: 12%;
+  top: 28%;
+  --dx: -14px;
+}
+.cookie__spark--2 {
+  right: 12%;
+  top: 22%;
+  background: var(--violet);
+  box-shadow: 0 0 6px 1px var(--violet);
+  --dx: 16px;
+}
+.cookie__spark--3 {
+  left: 24%;
+  top: 62%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px 1px var(--cyan);
+  --dx: -10px;
+}
+.cookie__spark--4 {
+  right: 20%;
+  top: 56%;
+  --dx: 12px;
+}
+
+.cookie.is-active .cookie__spark {
+  animation: spark 1.1s steps(6) infinite;
+}
+.cookie.is-active .cookie__spark--2 {
+  animation-delay: 0.25s;
+}
+.cookie.is-active .cookie__spark--3 {
+  animation-delay: 0.5s;
+}
+.cookie.is-active .cookie__spark--4 {
+  animation-delay: 0.75s;
+}
+
+@keyframes spark {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), -34px, 0) scale(1);
+  }
+}
+
+/* ---- alien -------------------------------------------------------------- */
+
+.alien {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+/* hide the world alien until it has landed (sprites set their own visibility, so target them) */
+.game:not([data-intro='done']) .alien,
+.game:not([data-intro='done']) .alien .sprite,
+.game:not([data-intro='done']) .alien .alien__aura,
+.game:not([data-intro='done']) .alien .alien__shadow {
+  visibility: hidden !important;
+}
+
+.alien__land {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.alien__land.is-landing {
+  animation: squash 0.5s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+@keyframes squash {
+  0% {
+    transform: scale(1.28, 0.7);
+  }
+  35% {
+    transform: scale(0.9, 1.12);
+  }
+  65% {
+    transform: scale(1.05, 0.96);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+/* landing dust puffs */
+.dust {
+  position: absolute;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.dust i {
+  position: absolute;
+  left: -7px;
+  top: -14px;
+  width: 14px;
+  height: 14px;
+  background: #e7d8ff;
+  opacity: 0;
+  animation: dust 0.7s steps(7) forwards;
+}
+
+.dust i:nth-child(1) {
+  --dx: -86px;
+  --dy: -14px;
+}
+.dust i:nth-child(2) {
+  --dx: -54px;
+  --dy: -34px;
+}
+.dust i:nth-child(3) {
+  --dx: -20px;
+  --dy: -46px;
+}
+.dust i:nth-child(4) {
+  --dx: 20px;
+  --dy: -46px;
+}
+.dust i:nth-child(5) {
+  --dx: 54px;
+  --dy: -34px;
+}
+.dust i:nth-child(6) {
+  --dx: 86px;
+  --dy: -14px;
+}
+
+@keyframes dust {
+  0% {
+    opacity: 0.95;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) scale(0.35);
+  }
+}
+
+.alien__flip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.alien__flip[data-dir='-1'] {
+  transform: scaleX(-1);
+}
+
+.alien__rate {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.alien__aura {
+  position: absolute;
+  left: -120px;
+  top: -210px;
+  width: 240px;
+  height: 230px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 55%,
+    rgba(182, 255, 60, 0.26),
+    rgba(0, 240, 255, 0.1) 50%,
+    transparent 72%
+  );
+}
+
+.alien__shadow {
+  position: absolute;
+  left: -38px;
+  top: -7px;
+  width: 76px;
+  height: 14px;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0, 0, 0, 0.6), transparent 72%);
+}
+
+.sprite {
+  position: absolute;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.alien[data-state='idle'] .sprite--idle,
+.alien[data-state='stairs'] .sprite--stairs,
+.alien[data-state='walking'] .sprite--walking,
+.alien[data-state='jetpack'] .sprite--jet {
+  visibility: visible;
+}
+
+/* a sprite frozen on one frame (the jetpack pose) */
+.sprite__strip--still {
+  animation: none;
+  will-change: auto;
+}
+
+.sprite__strip {
+  display: block;
+  max-width: none;
+  image-rendering: auto;
+  will-change: transform;
+  animation: sprite-play calc(var(--frames) / var(--fps) * 1s) steps(var(--frames)) infinite;
+  animation-play-state: paused;
+}
+
+.alien[data-state='idle'] .sprite--idle .sprite__strip,
+.alien[data-state='stairs'] .sprite--stairs .sprite__strip,
+.alien[data-state='walking'] .sprite--walking .sprite__strip {
+  animation-play-state: running;
+}
+
+@keyframes sprite-play {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+/* ------------------------------------------------------------------ jetpack */
+/* JETPACK_FLYING: side-view pose, backpack, pixel flame, glow, ember trail. */
+
+.jet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  transform-origin: 0 -55px;
+}
+
+.alien[data-state='jetpack'] .jet {
+  visibility: visible;
+}
+
+.alien:not([data-state='jetpack']) .jet * {
+  animation-play-state: paused;
+}
+
+.jet__pack {
+  position: absolute;
+  left: -29px;
+  top: -64px;
+  width: 17px;
+  height: 30px;
+  background: linear-gradient(90deg, #d4daf2 0 28%, #8d94b8 28% 68%, #585e78 68%);
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 5px 0 var(--pink);
+}
+
+.jet__pack::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: -9px;
+  width: 7px;
+  height: 6px;
+  background: #2a2d40;
+  border: 2px solid var(--ink);
+}
+
+.jet__flame {
+  position: absolute;
+  left: -26px;
+  top: -33px;
+  width: 11px;
+  height: 44px;
+  transform-origin: 50% 0;
+  transform: scaleY(var(--thrust, 1));
+  background: linear-gradient(180deg, #fffbd0 0%, #ffe600 28%, #ff9a1f 64%, #ff3d00 100%);
+  /* stepped outline = pixel flame */
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 30%,
+    78% 30%,
+    78% 62%,
+    58% 62%,
+    58% 100%,
+    42% 100%,
+    42% 62%,
+    22% 62%,
+    22% 30%,
+    0 30%
+  );
+  animation: flame-flicker 0.12s steps(2) infinite alternate;
+}
+
+@keyframes flame-flicker {
+  from {
+    transform: scaleY(calc(var(--thrust, 1) * 0.82));
+  }
+  to {
+    transform: scaleY(calc(var(--thrust, 1) * 1.14));
+  }
+}
+
+.jet__glow {
+  position: absolute;
+  left: -78px;
+  top: -76px;
+  width: 112px;
+  height: 126px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 55%,
+    rgba(255, 170, 40, 0.6),
+    rgba(255, 61, 242, 0.22) 50%,
+    transparent 72%
+  );
+  animation: glow-flicker 0.2s steps(2) infinite alternate;
+}
+
+@keyframes glow-flicker {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.alien[data-state='jetpack'] .alien__aura {
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 55%,
+    rgba(255, 170, 40, 0.3),
+    rgba(255, 61, 242, 0.14) 55%,
+    transparent 74%
+  );
+}
+
+.alien[data-state='jetpack'] .alien__shadow {
+  opacity: 0;
+}
+
+/* embers left behind in the world */
+.fx-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* -------------------------------------------------------------------- intro */
+/* The alien peeks over the hero's bottom edge, waves and talks; on scroll it drops in. */
+
+.peek {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.game[data-intro='done'] .peek {
+  visibility: hidden;
+}
+
+.peek__body {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 -80px;
+}
+
+.game[data-intro='peek'] .peek .sprite--wave,
+.game[data-intro='fall'] .peek .sprite--idle {
+  visibility: visible;
+}
+
+.game[data-intro='peek'] .peek .sprite--wave .sprite__strip,
+.game[data-intro='fall'] .peek .sprite--idle .sprite__strip {
+  animation-play-state: running;
+}
+
+.peek__bubble {
+  position: absolute;
+  right: 56px;
+  top: -146px;
+  width: max-content;
+  max-width: 256px;
+  padding: 12px 16px 10px;
+  font-size: 22px;
+  line-height: 1.25;
+  text-align: right;
+  color: var(--ink);
+  background: #fff7de;
+  opacity: 0;
+  transform-origin: 100% 60%;
+  transition: opacity 0.15s ease;
+  box-shadow:
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1),
+    0 0 26px rgba(255, 230, 0, 0.45);
+}
+
+/* pixel tail pointing at the alien's head */
+.peek__bubble::after {
+  content: '';
+  position: absolute;
+  right: -16px;
+  top: 30px;
+  width: 8px;
+  height: 8px;
+  background: #fff7de;
+  box-shadow:
+    4px 4px 0 0 #fff7de,
+    8px 8px 0 0 #fff7de,
+    0 -4px 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    8px 4px 0 0 var(--ink),
+    12px 8px 0 0 var(--ink),
+    12px 12px 0 0 var(--ink),
+    8px 12px 0 0 var(--ink),
+    0 4px 0 0 #fff7de;
+}
+
+.bubble__text {
+  margin: 0;
+}
+
+.bubble__text mark {
+  color: #d4006a;
+  background: none;
+}
+
+.game[data-intro='peek'] .peek__bubble {
+  opacity: 1;
+  animation: bubble-pop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 0.35s both;
+}
+
+.game[data-intro='peek'] .bubble__text {
+  animation: type-in 1.7s steps(26) 0.75s both;
+}
+
+@keyframes bubble-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes type-in {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* the controller / hint only make sense once the alien has landed */
+.game:not([data-intro='done']) .hint {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------- crt */
+
+.crt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background:
+    radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(4, 0, 12, 0.7) 100%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.13) 0 2px, transparent 2px 4px);
+}
+
+/* ---------------------------------------------------------------- progress */
+
+.progress {
+  position: absolute;
+  z-index: 8;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 18px;
+  line-height: 1;
+  background: rgba(10, 4, 22, 0.72);
+  box-shadow:
+    -3px 0 0 0 var(--violet),
+    3px 0 0 0 var(--violet),
+    0 -3px 0 0 var(--violet),
+    0 3px 0 0 var(--violet),
+    -6px 0 0 0 var(--ink),
+    6px 0 0 0 var(--ink),
+    0 -6px 0 0 var(--ink),
+    0 6px 0 0 var(--ink);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.progress__count {
+  color: var(--yellow);
+  min-width: 2.4em;
+  text-align: center;
+}
+
+.progress__pips,
+.hud__pips {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.progress__pips i,
+.hud__pips i {
+  width: 9px;
+  height: 9px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid var(--ink);
+  transition:
+    background-color 0.3s,
+    box-shadow 0.3s;
+}
+
+.progress__pips i.is-on,
+.hud__pips i.is-on {
+  background: var(--neon);
+  box-shadow: 0 0 8px 1px var(--neon);
+}
+
+/* ----------------------------------------------------------- dialogue card */
+
+.card {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: clamp(26px, 5vh, 56px);
+  width: min(400px, calc(100% - 48px));
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(-50%, 26px, 0) scale(0.86);
+  transition:
+    transform 0.22s ease,
+    opacity 0.18s ease,
+    visibility 0s linear 0.22s;
+}
+
+.card.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transform: translate3d(-50%, 0, 0) scale(1);
+  transition:
+    transform 0.42s cubic-bezier(0.2, 1.5, 0.4, 1),
+    opacity 0.2s ease,
+    visibility 0s;
+}
+
+.card.is-story {
+  width: min(520px, calc(100% - 32px));
+}
+
+.card__frame {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px 16px 14px 14px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, #2c1658 0%, #170b34 100%);
+  box-shadow:
+    -6px 0 0 0 var(--yellow),
+    6px 0 0 0 var(--yellow),
+    0 -6px 0 0 var(--yellow),
+    0 6px 0 0 var(--yellow),
+    -12px 0 0 0 var(--ink),
+    12px 0 0 0 var(--ink),
+    0 -12px 0 0 var(--ink),
+    0 12px 0 0 var(--ink),
+    inset 0 0 0 3px rgba(163, 91, 255, 0.55),
+    0 22px 46px 6px rgba(163, 91, 255, 0.4);
+}
+
+.card__art {
+  position: relative;
+  flex: 0 0 104px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 55%, rgba(255, 230, 0, 0.28), rgba(10, 4, 22, 0.55) 70%);
+  box-shadow: inset 0 0 0 3px var(--ink);
+}
+
+.card__artglow {
+  position: absolute;
+  inset: 8px;
+  background: radial-gradient(circle, rgba(163, 91, 255, 0.5), transparent 70%);
+  animation: aura-pulse 1.6s ease-in-out infinite;
+}
+
+.card__art img {
+  position: relative;
+  display: block;
+  width: 118px;
+  max-width: none;
+  height: auto;
+  margin: -10px 0;
+  image-rendering: auto;
+  filter: drop-shadow(0 0 8px rgba(255, 230, 0, 0.55));
+}
+
+.card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  text-align: right;
+}
+
+.card__tag {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--cyan);
+}
+
+.card__name {
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: normal;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    2px 2px 0 var(--ink),
+    -2px -2px 0 var(--ink),
+    2px -2px 0 var(--ink),
+    -2px 2px 0 var(--ink);
+}
+
+.card__price {
+  align-self: flex-end;
+  padding: 5px 10px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--cyan);
+  box-shadow:
+    inset -3px -3px 0 rgba(0, 0, 0, 0.25),
+    0 0 14px rgba(0, 240, 255, 0.5);
+}
+
+.card__price b {
+  font-weight: normal;
+  font-size: 1.2em;
+}
+
+.card__order {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 11px 14px 10px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--yellow);
+  box-shadow:
+    inset 0 -5px 0 rgba(0, 0, 0, 0.22),
+    inset 0 4px 0 rgba(255, 255, 255, 0.55),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    0 8px 0 0 var(--ink),
+    0 0 20px 2px rgba(255, 230, 0, 0.45);
+  transition:
+    transform 0.08s steps(2),
+    background-color 0.2s;
+}
+
+.card__order:hover {
+  background: #fff35a;
+}
+
+.card__order:active {
+  transform: translate3d(0, 5px, 0);
+}
+
+.card__order:focus-visible {
+  outline: 3px dashed var(--cyan);
+  outline-offset: 6px;
+}
+
+.card__order.is-done {
+  background: var(--lime);
+}
+
+.card__blurb {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #fff7de;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+/* --------------------------------------------------------------------- HUD */
+
+.hud {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px calc(14px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 8px;
+  font-size: 20px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(10, 4, 22, 0.78);
+  box-shadow:
+    -3px 0 0 0 var(--cyan),
+    3px 0 0 0 var(--cyan),
+    0 -3px 0 0 var(--cyan),
+    0 3px 0 0 var(--cyan),
+    -6px 0 0 0 var(--ink),
+    6px 0 0 0 var(--ink),
+    0 -6px 0 0 var(--ink),
+    0 6px 0 0 var(--ink),
+    0 0 22px rgba(0, 240, 255, 0.35);
+  text-shadow: 2px 2px 0 var(--ink);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+  animation: hint-float 1.6s ease-in-out infinite;
+}
+
+.hint.is-hidden {
+  /* leave the layout flow once dismissed so the tutorial / quick bar can use the room */
+  position: absolute;
+  bottom: 100%;
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  animation: none;
+  pointer-events: none;
+}
+
+@keyframes hint-float {
+  50% {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+.hint__keys {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.hint__keys .arrow-icon {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  box-sizing: content-box;
+  color: var(--yellow);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.arrow-icon {
+  display: block;
+  fill: currentColor;
+  image-rendering: pixelated;
+}
+
+.hud__bar {
+  position: relative;
+  width: min(680px, 100%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'left quick right';
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.22),
+    -4px 0 0 0 rgba(10, 4, 22, 0.8),
+    4px 0 0 0 rgba(10, 4, 22, 0.8),
+    0 -4px 0 0 rgba(10, 4, 22, 0.8),
+    0 4px 0 0 rgba(10, 4, 22, 0.8),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- quick-select: one pixel button per cookie, jetpack fast travel ---- */
+
+.quick {
+  grid-area: quick;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+
+/* dashed frame that pulses while the tutorial is open */
+.quick::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3px dashed var(--yellow);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hud[data-tutorial='true'] .quick::after {
+  animation: attention 0.9s steps(2) infinite;
+}
+
+@keyframes attention {
+  50% {
+    opacity: 1;
+  }
+}
+
+.quick__btn {
+  appearance: none;
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1.25;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  color: #fff;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink);
+  transition:
+    transform 0.12s steps(2),
+    background-color 0.2s;
+}
+
+.quick__thumb {
+  position: absolute;
+  inset: 0 0 18% 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 46%;
+  transform: scale(1.85);
+  transform-origin: 50% 46%;
+  image-rendering: auto;
+  filter: saturate(0.7) brightness(0.8);
+  transition: filter 0.2s;
+  pointer-events: none;
+}
+
+.quick__num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 0 1px;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1;
+  text-align: center;
+  color: #fff;
+  background: rgba(10, 4, 22, 0.75);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.quick__btn:hover,
+.quick__btn:focus-visible {
+  transform: translate3d(0, -4px, 0);
+}
+
+.quick__btn:hover .quick__thumb,
+.quick__btn:focus-visible .quick__thumb {
+  filter: none;
+}
+
+.quick__btn:focus-visible {
+  outline: 3px dashed var(--cyan);
+  outline-offset: 5px;
+}
+
+.quick__btn:active {
+  transform: translate3d(0, 2px, 0);
+}
+
+/* visited cookies keep a coloured edge */
+.quick__btn.is-visited {
+  box-shadow:
+    inset 0 0 0 2px var(--neon),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink);
+}
+
+.quick__btn.is-visited .quick__thumb {
+  filter: saturate(1) brightness(0.95);
+}
+
+.quick__btn.is-visited .quick__num {
+  color: var(--neon);
+}
+
+/* the cookie the alien is standing at */
+.quick__btn.is-current {
+  background: linear-gradient(180deg, rgba(255, 230, 0, 0.5), rgba(255, 230, 0, 0.12));
+  box-shadow:
+    inset 0 0 0 3px var(--yellow),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    0 0 18px 2px rgba(255, 230, 0, 0.55);
+}
+
+.quick__btn.is-current .quick__thumb {
+  filter: none;
+}
+
+/* flight in progress towards this one */
+.quick__btn.is-target {
+  animation: target-blink 0.35s steps(2) infinite;
+}
+
+@keyframes target-blink {
+  50% {
+    background: rgba(163, 91, 255, 0.55);
+  }
+}
+
+/* ---- tutorial popup ---- */
+
+.tutorial {
+  position: relative;
+  width: min(560px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  pointer-events: auto;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, #2c1658, #170b34);
+  box-shadow:
+    -5px 0 0 0 var(--yellow),
+    5px 0 0 0 var(--yellow),
+    0 -5px 0 0 var(--yellow),
+    0 5px 0 0 var(--yellow),
+    -10px 0 0 0 var(--ink),
+    10px 0 0 0 var(--ink),
+    0 -10px 0 0 var(--ink),
+    0 10px 0 0 var(--ink),
+    0 0 34px 4px rgba(255, 230, 0, 0.3);
+  animation: tutorial-in 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+/* pixel arrow pointing down at the quick-select bar */
+.tutorial::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 8px;
+  height: 8px;
+  margin: 10px 0 0 -4px;
+  background: var(--yellow);
+  box-shadow:
+    -8px -8px 0 0 var(--yellow),
+    8px -8px 0 0 var(--yellow),
+    -16px -16px 0 0 var(--yellow),
+    16px -16px 0 0 var(--yellow),
+    0 8px 0 0 var(--yellow);
+  animation: arrow-bob 0.7s steps(2) infinite;
+}
+
+@keyframes tutorial-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes arrow-bob {
+  50% {
+    transform: translate3d(0, 5px, 0);
+  }
+}
+
+.tutorial__text {
+  flex: 1;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.45;
+  text-align: right;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.tutorial__lead {
+  color: var(--yellow);
+}
+
+.tutorial__ok {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 0;
+  cursor: pointer;
+  padding: 11px 16px 10px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--yellow);
+  box-shadow:
+    inset 0 -5px 0 rgba(0, 0, 0, 0.22),
+    inset 0 4px 0 rgba(255, 255, 255, 0.55),
+    -3px 0 0 0 var(--ink),
+    3px 0 0 0 var(--ink),
+    0 -3px 0 0 var(--ink),
+    0 3px 0 0 var(--ink),
+    0 8px 0 0 var(--ink);
+  transition: transform 0.08s steps(2);
+}
+
+.tutorial__ok:hover {
+  background: #fff35a;
+}
+
+.tutorial__ok:active {
+  transform: translate3d(0, 5px, 0);
+}
+
+.tutorial__ok:focus-visible {
+  outline: 3px dashed var(--cyan);
+  outline-offset: 6px;
+}
+
+.pad--left {
+  grid-area: left;
+}
+
+.pad--right {
+  grid-area: right;
+}
+
+.pad {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.06) 55%, rgba(163, 91, 255, 0.22));
+  border: 0;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.55),
+    inset 0 -8px 0 rgba(0, 0, 0, 0.22),
+    inset 0 4px 0 rgba(255, 255, 255, 0.35),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    0 8px 0 0 var(--ink);
+  transition:
+    transform 0.07s steps(2),
+    color 0.15s;
+}
+
+.pad .arrow-icon {
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(3px 3px 0 var(--ink));
+}
+
+.pad:hover {
+  color: var(--cyan);
+}
+
+.pad:focus-visible {
+  outline: 3px dashed var(--cyan);
+  outline-offset: 8px;
+}
+
+.pad[data-pressed='true'] {
+  color: var(--yellow);
+  transform: translate3d(0, 6px, 0);
+  background: linear-gradient(160deg, rgba(255, 230, 0, 0.5), rgba(255, 230, 0, 0.12) 60%, rgba(255, 61, 242, 0.3));
+  box-shadow:
+    inset 0 0 0 3px var(--yellow),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    0 2px 0 0 var(--ink),
+    0 0 26px 4px rgba(255, 230, 0, 0.5);
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 640px) {
+  /* quick-select gets its own row, arrows sit underneath on both sides */
+  .hud__bar {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'quick quick'
+      'left right';
+    gap: 12px;
+  }
+  .pad--right {
+    justify-self: end;
+  }
+  .pad--left {
+    justify-self: start;
+  }
+  .tutorial {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .tutorial__text {
+    font-size: 18px;
+  }
+  .tutorial__ok {
+    align-self: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .card__art {
+    flex-basis: 84px;
+  }
+  .card__art img {
+    width: 96px;
+  }
+  .card__name {
+    font-size: 24px;
+  }
+  .pad {
+    width: 70px;
+    height: 70px;
+  }
+  .progress {
+    top: 10px;
+    right: 12px;
+    font-size: 16px;
+  }
+  .progress__pips {
+    display: none;
+  }
+  .hint {
+    font-size: 17px;
+  }
+}
+
+@media (max-height: 520px) {
+  .card__art {
+    display: none;
+  }
+  .card__frame {
+    padding: 10px 14px;
+  }
+  .card__name {
+    font-size: 22px;
+  }
+  .pad {
+    width: 58px;
+    height: 58px;
+  }
+  .hud {
+    gap: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg__stars--near,
+  .platform__aura,
+  .platform__chase,
+  .tread__aura,
+  .cookie__float,
+  .hint,
+  .sign .arrow-icon,
+  .card__artglow,
+  .tutorial,
+  .tutorial::after,
+  .jet__flame,
+  .jet__glow {
+    animation: none;
+  }
+  .cookie.is-active .cookie__halo,
+  .cookie.is-active .cookie__spark {
+    animation: none;
+  }
+  .cookie.is-active .cookie__spark {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "idle": {
+    "src": "/sprites/alien-idle.strip.webp",
+    "frames": 9,
+    "cellW": 78,
+    "cellH": 163,
+    "anchorX": 42,
+    "fps": 7
+  },
+  "stairs": {
+    "src": "/sprites/alien-stairs.strip.webp",
+    "frames": 8,
+    "cellW": 80,
+    "cellH": 153,
+    "anchorX": 42.86896551724138,
+    "fps": 10
+  },
+  "walking": {
+    "src": "/sprites/alien-walking.strip.webp",
+    "frames": 25,
+    "cellW": 71,
+    "cellH": 109,
+    "anchorX": 34.758620689655174,
+    "fps": 44
+  },
+  "wave": {
+    "src": "/sprites/alien-wave.strip.webp",
+    "frames": 12,
+    "cellW": 114,
+    "cellH": 163,
+    "anchorX": 42,
+    "fps": 12
+  }
+}

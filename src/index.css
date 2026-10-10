@@ -1,0 +1,27 @@
+@font-face {
+  font-family: 'CustomPixelFont';
+  src: url('/fonts/PixelAE-Bold.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'CustomPixelFont', sans-serif;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+html,
+body,
+#root {
+  background: #000;
+}
+
+.game-fallback {
+  min-height: 100vh;
+  min-height: 100svh;
+}

@@ -1,0 +1,17 @@
+{
+  "running": {
+    "src": "/sprites/alien-running.strip.webp",
+    "frames": 16,
+    "cellW": 84,
+    "cellH": 88,
+    "anchorX": 49.62962962962963,
+    "fps": 20
+  },
+  "rocket": {
+    "src": "/sprites/cookie-rocket.cut.webp",
+    "w": 242,
+    "h": 338,
+    "portX": 0.5,
+    "portY": 0.3935
+  }
+}
