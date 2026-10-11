@@ -476,7 +476,19 @@ function InteractiveGame({ onOrder }) {
 
     /* ---------------------------------------------------------- intro ---- */
 
+    let pageFollow = null
+    let touchY = null
+
+    const gameTopY = () => Math.max(0, Math.round(window.scrollY + section.getBoundingClientRect().top))
+
+    const stopPageFollow = (snap) => {
+      if (!pageFollow) return
+      if (snap) window.scrollTo(0, pageFollow.dest)
+      pageFollow = null
+    }
+
     const land = () => {
+      stopPageFollow(true)
       g.phase = 'done'
       g.fall = null
       section.dataset.intro = 'done'
@@ -489,7 +501,9 @@ function InteractiveGame({ onOrder }) {
 
     const startFall = () => {
       if (g.phase !== 'peek') return
+      const dest = gameTopY()
       if (reduceMotion) {
+        window.scrollTo(0, dest)
         land()
         return
       }
@@ -500,6 +514,11 @@ function InteractiveGame({ onOrder }) {
       const vy0 = -FALL_HOP
       const T = (-vy0 + Math.sqrt(vy0 * vy0 + 2 * FALL_GRAVITY * Math.max(1, ly - y0))) / FALL_GRAVITY
       g.fall = { t: 0, y: y0, vy: vy0, ly, T }
+      // camera = page: keep the falling alien on screen so the pads are visible on landing
+      const sectionTop = section.getBoundingClientRect().top
+      pageFollow = { dest, startScreen: sectionTop + y0, ly }
+      visible = true
+      start()
     }
 
     const stepFall = (dt) => {
@@ -509,11 +528,17 @@ function InteractiveGame({ onOrder }) {
       f.vy += FALL_GRAVITY * dt
       f.y += f.vy * dt
       const u = clamp(f.t / f.T, 0, 1)
+      const peekY = Math.min(f.y, f.ly)
       // stretch while falling, small tilt for personality
       const stretch = 1 + 0.1 * Math.sin(u * Math.PI)
       const tilt = -12 * Math.sin(u * Math.PI * 1.3)
-      peek.style.transform = `translate3d(${vw * PEEK_X}px, ${Math.min(f.y, f.ly)}px, 0) scale(${zoom})`
+      peek.style.transform = `translate3d(${vw * PEEK_X}px, ${peekY}px, 0) scale(${zoom})`
       peekBody.style.transform = `rotate(${tilt}deg) scale(${1 / stretch}, ${stretch})`
+      if (pageFollow) {
+        const e = 1 - (1 - u) ** 3
+        const screenY = pageFollow.startScreen + (pageFollow.ly - pageFollow.startScreen) * e
+        window.scrollTo(0, clamp(pageFollow.dest - (screenY - peekY), 0, pageFollow.dest))
+      }
       if (f.y >= f.ly || f.t >= f.T) land()
     }
 
@@ -543,6 +568,7 @@ function InteractiveGame({ onOrder }) {
         setUi((s) => ({ active: -1, shown: s.shown }))
       }
       last = { tx: NaN, ty: NaN, ax: NaN, ay: NaN, px: NaN }
+      stopPageFollow(false)
       lockCamera()
       placePeek()
       paint()
@@ -553,8 +579,34 @@ function InteractiveGame({ onOrder }) {
       const wh = window.innerHeight
       if (g.phase === 'peek') {
         if (top < wh - Math.max(70, wh * 0.08)) startFall()
-      } else if (top >= wh - 1) {
+      } else if (g.phase === 'done' && top >= wh - 1) {
         resetIntro()
+      }
+    }
+
+    const onWheel = (e) => {
+      if (g.phase === 'peek' && e.deltaY > 0) {
+        if (e.cancelable) e.preventDefault()
+        startFall()
+        return
+      }
+      if (g.phase === 'fall' && e.cancelable) e.preventDefault()
+    }
+
+    const onTouchStart = (e) => {
+      touchY = e.touches[0]?.clientY ?? null
+    }
+
+    const onTouchMove = (e) => {
+      if (g.phase === 'fall') {
+        if (e.cancelable) e.preventDefault()
+        return
+      }
+      if (g.phase !== 'peek' || touchY == null) return
+      const dy = touchY - e.touches[0].clientY
+      if (dy > 6) {
+        if (e.cancelable) e.preventDefault()
+        startFall()
       }
     }
 
@@ -792,7 +844,8 @@ function InteractiveGame({ onOrder }) {
       paint()
     }
     const start = () => {
-      if (raf || !visible || document.hidden) return
+      if (raf || document.hidden) return
+      if (!visible && g.phase !== 'fall') return
       prev = performance.now()
       raf = requestAnimationFrame(loop)
     }
@@ -806,7 +859,7 @@ function InteractiveGame({ onOrder }) {
       ([entry]) => {
         visible = entry.isIntersecting
         g.capture = entry.intersectionRatio > 0.45
-        if (visible) start()
+        if (visible || g.phase === 'fall') start()
         else stop()
       },
       { threshold: [0, 0.2, 0.45, 0.7] },
@@ -824,6 +877,11 @@ function InteractiveGame({ onOrder }) {
       KeyD: 'right',
     }
     const onKeyDown = (e) => {
+      if (g.phase === 'peek' && ['Space', 'PageDown', 'ArrowDown', 'End'].includes(e.code)) {
+        e.preventDefault()
+        startFall()
+        return
+      }
       if (!g.capture || e.metaKey || e.ctrlKey || e.altKey) return
       // 1-8 = jetpack straight to that cookie
       const digit = /^(?:Digit|Numpad)([1-8])$/.exec(e.code)
@@ -857,6 +915,9 @@ function InteractiveGame({ onOrder }) {
     document.addEventListener('visibilitychange', onVisibility)
 
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
 
     measure()
     if (g.phase === 'done') snapCamera()
@@ -869,7 +930,11 @@ function InteractiveGame({ onOrder }) {
       zoomTween?.kill()
       g.flying = false
       g.zoomFx = 1
+      stopPageFollow(false)
       window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
       stop()
       io.disconnect()
       ro.disconnect()
